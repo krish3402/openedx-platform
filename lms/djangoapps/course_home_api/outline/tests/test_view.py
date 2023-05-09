@@ -4,6 +4,7 @@ Tests for Outline Tab API in the Course Home API
 
 import itertools
 from datetime import datetime, timedelta, timezone
+from lms.djangoapps.courseware.access_response import AccessError
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from unittest.mock import Mock, patch  # lint-amnesty, pylint: disable=wrong-import-order
 
@@ -20,6 +21,7 @@ from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.student.roles import CourseInstructorRole
 from common.djangoapps.student.tests.factories import UserFactory
 from lms.djangoapps.course_home_api.tests.utils import BaseCourseHomeTests
+from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.content.learning_sequences.api import replace_course_outline
 from openedx.core.djangoapps.content.learning_sequences.data import CourseOutlineData, CourseVisibility
@@ -437,3 +439,20 @@ class OutlineTabTestViews(BaseCourseHomeTests):
         self.update_course_and_overview()
         CourseEnrollment.enroll(UserFactory(), self.course.id)  # grr, some rando took our spot!
         self.assert_can_enroll(False)
+
+    def test_access_error_redirect(self):
+        """ Test for behavior when get_course_with_access raises a redirect error """
+        expected_url = "www.testError.access/redirect.php?work=yes"
+        mock_access_error = Mock(AccessError)
+        mock_course_access_redirect = CourseAccessRedirect(expected_url, mock_access_error)
+
+        def raise_access_error(*args, **kwargs):
+            raise mock_course_access_redirect
+
+        with patch(
+            'lms.djangoapps.course_home_api.outline.views.get_course_with_access',
+            side_effect=raise_access_error
+        ):
+            response = self.client.get(self.url)
+        assert response.status_code == 302
+        assert response.url == expected_url
