@@ -4,7 +4,6 @@ Tests for Outline Tab API in the Course Home API
 
 import itertools
 from datetime import datetime, timedelta, timezone
-from lms.djangoapps.courseware.access_response import AccessError
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from unittest.mock import Mock, patch  # lint-amnesty, pylint: disable=wrong-import-order
 
@@ -69,6 +68,7 @@ class OutlineTabTestViews(BaseCourseHomeTests):
         date_blocks = dates_widget.get('course_date_blocks')
         assert all((block.get('title') != '') for block in date_blocks)
         assert all(block.get('date') for block in date_blocks)
+        assert not response.data['course_access_redirect']
 
         resume_course = response.data.get('resume_course')
         resume_course_url = resume_course.get('url')
@@ -443,7 +443,11 @@ class OutlineTabTestViews(BaseCourseHomeTests):
     def test_access_error_redirect(self):
         """ Test for behavior when get_course_with_access raises a redirect error """
         expected_url = "www.testError.access/redirect.php?work=yes"
-        mock_access_error = Mock(AccessError)
+        mock_access_error = Mock(
+            error_code="errOr_c0DE",
+            developer_message="The User should Not DO THIS!",
+            user_message="DON't Do This!! Stop!!"
+        )
         mock_course_access_redirect = CourseAccessRedirect(expected_url, mock_access_error)
 
         def raise_access_error(*args, **kwargs):
@@ -454,5 +458,11 @@ class OutlineTabTestViews(BaseCourseHomeTests):
             side_effect=raise_access_error
         ):
             response = self.client.get(self.url)
-        assert response.status_code == 302
-        assert response.url == expected_url
+        assert response.status_code == 200
+        assert response.json() == {
+            'course_access_redirect': True,
+            'url': expected_url,
+            'error_code': mock_access_error.error_code,
+            'developer_message': mock_access_error.developer_message,
+            'user_message': mock_access_error.user_message,
+        }

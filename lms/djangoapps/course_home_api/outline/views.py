@@ -27,11 +27,15 @@ from lms.djangoapps.course_goals.api import (
     get_course_goal,
 )
 from lms.djangoapps.course_goals.models import CourseGoal
-from lms.djangoapps.course_home_api.outline.serializers import OutlineTabSerializer
+from lms.djangoapps.course_home_api.outline.serializers import (
+    OutlineTabSerializer,
+    OutlineTabCourseAccessRedirectSerializer
+)
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.context_processor import user_timezone_locale_prefs
 from lms.djangoapps.courseware.courses import get_course_date_blocks, get_course_info_section, get_course_with_access
 from lms.djangoapps.courseware.date_summary import TodaysDate
+from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
 from lms.djangoapps.courseware.masquerade import is_masquerading, setup_masquerade
 from lms.djangoapps.courseware.views.views import get_cert_data
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
@@ -167,7 +171,11 @@ class OutlineTabView(RetrieveAPIView):
         monitoring_utils.set_custom_attribute('user_id', request.user.id)
         monitoring_utils.set_custom_attribute('is_staff', request.user.is_staff)
 
-        course = get_course_with_access(request.user, 'load', course_key, check_if_enrolled=False)
+        try:
+            course = get_course_with_access(request.user, 'load', course_key, check_if_enrolled=False)
+        except CourseAccessRedirect as access_redirect:
+            serializer = OutlineTabCourseAccessRedirectSerializer(access_redirect)
+            return Response(serializer.data)
 
         masquerade_object, request.user = setup_masquerade(
             request,
