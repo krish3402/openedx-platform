@@ -80,7 +80,13 @@ class OutlineTabView(RetrieveAPIView):
 
     **Response Values**
 
-        Body consists of the following fields:
+        Body consists of two possible shapes.
+        Both include:
+
+        course_access_redirect (bool): If the requesting user doesn't have access to this course
+                                       and should be redirected, this will be True, otherwise False
+
+        If course_access_redirect is False, the user has access to the course, and the return shape will be:
 
         access_expiration: An object detailing when access to this course will expire
             expiration_date: (str) When the access expires, in ISO 8601 notation
@@ -146,6 +152,14 @@ class OutlineTabView(RetrieveAPIView):
             url: (str) The display name of the course block to resume
         welcome_message_html: (str) Raw HTML for the course updates banner
         user_has_passing_grade: (bool) Whether the user currently is passing the course
+
+        If course_access_redirect is True, the user should be redirected. The return shape will be:
+
+        url: (str) The URL to which the user should be redirected
+        error_code: (str) A system identifier for the reason the user is being redirected
+        developer_message: (str) A message explaining why the user is being redirected,
+                                 intended for developer debugging.
+        user_message: (str) A message explaining why the user is being redirected, intended to be shown to the user.
 
     **Returns**
 
