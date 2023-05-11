@@ -2,6 +2,7 @@
 import json
 
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
 
@@ -20,6 +21,8 @@ class TestMFEContextSerializer(TestCase):
         super().setUp()
         self.url = reverse('mfe_context')
         self.query_params = {'next': '/dashboard'}
+
+        print("\n\n\nURL", self.url, "\n\n\n")
 
     @staticmethod
     def get_mock_mfe_context_data():
@@ -192,6 +195,7 @@ class TestMFEContextSerializer(TestCase):
         Test MFEContextSerializer with mock data that serializes data correctly
         """
 
+        print("\n\n\nURL", self.url, "\n\n\n")
         mfe_context_data = self.get_mock_mfe_context_data()
         expected_data = self.get_expected_data()
         output_data = MFEContextSerializer(
@@ -204,6 +208,7 @@ class TestMFEContextSerializer(TestCase):
         )
 
     def test_get_mfe_context_response_keys(self):
+        print("\n\n\nURL", self.url, "\n\n\n")
         response = self.client.get(self.url, self.query_params)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -211,7 +216,13 @@ class TestMFEContextSerializer(TestCase):
         for key in expected_keys:
             self.assertIn(key, response.data)
 
+    @override_settings(
+        ENABLE_DYNAMIC_REGISTRATION_FIELDS=True,
+        REGISTRATION_EXTRA_FIELDS={'state': 'required', 'last_name': 'required', 'first_name': 'required'},
+        REGISTRATION_FIELD_ORDER=['first_name', 'last_name', 'state'],
+    )
     def test_mfe_context_serializer_empty_response(self):
+        print("\n\n\nURL", self.url, "\n\n\n")
         mfe_context_data = self.get_mock_empty_mfe_context_data()
         expected_data = self.get_empty_expected_data()
         serialized_data = MFEContextSerializer(
@@ -223,7 +234,13 @@ class TestMFEContextSerializer(TestCase):
             expected_data
         )
 
+    @override_settings(
+        ENABLE_DYNAMIC_REGISTRATION_FIELDS=True,
+        REGISTRATION_EXTRA_FIELDS={'state': 'required', 'last_name': 'required', 'first_name': 'required'},
+        REGISTRATION_FIELD_ORDER=['first_name', 'last_name', 'state'],
+    )
     def test_mfe_context_api_response(self):
+        print("\n\n\nURL", self.url, "\n\n\n")
         response = self.client.get(self.url, self.query_params)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
